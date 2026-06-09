@@ -5,6 +5,7 @@ namespace App\Models;
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
@@ -95,10 +96,26 @@ class User extends Authenticatable
     }
 
     /**
+     * Convenience check for the Developer role.
+     */
+    public function isDeveloper(): bool
+    {
+        return $this->hasRole(self::ROLE_DEVELOPER);
+    }
+
+    /**
      * Get the human-readable label for the user's role.
      */
     public function getRoleLabelAttribute(): string
     {
         return self::ROLES[$this->role] ?? $this->role;
+    }
+
+    /**
+     * Developer tasks assigned to this user (their assigned leads).
+     */
+    public function developerTasks(): HasMany
+    {
+        return $this->hasMany(DeveloperTask::class, 'developer_id');
     }
 }

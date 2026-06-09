@@ -16,9 +16,9 @@
         [
             'label'   => 'Leads',
             'icon'    => 'users',
-            'href'    => '#',
+            'route'   => 'leads.index',
             'active'  => request()->routeIs('leads.*'),
-            'roles'   => [User::ROLE_SUPER_ADMIN, User::ROLE_LEADS_ADMIN, User::ROLE_SALES],
+            'roles'   => [User::ROLE_SUPER_ADMIN, User::ROLE_LEADS_ADMIN, User::ROLE_SALES, User::ROLE_DEVELOPER],
         ],
         [
             'label'   => 'Users',
@@ -26,13 +26,6 @@
             'href'    => '#',
             'active'  => request()->routeIs('users.*'),
             'roles'   => [User::ROLE_SUPER_ADMIN],
-        ],
-        [
-            'label'   => 'Developers',
-            'icon'    => 'code',
-            'href'    => '#',
-            'active'  => request()->routeIs('developers.*'),
-            'roles'   => [User::ROLE_SUPER_ADMIN, User::ROLE_DEVELOPER],
         ],
     ];
 
