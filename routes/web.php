@@ -5,6 +5,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DeveloperTaskController;
 use App\Http\Controllers\LeadAssetController;
 use App\Http\Controllers\LeadController;
+use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -69,6 +70,16 @@ Route::middleware('auth')->group(function () {
         // Developer workflow update (authorization enforced in the form request).
         Route::put('/developer-tasks/{developerTask}', [DeveloperTaskController::class, 'update'])
             ->name('developer-tasks.update');
+    });
+
+    /*
+    |----------------------------------------------------------------------
+    | User management (Super Admin only)
+    |----------------------------------------------------------------------
+    */
+    Route::middleware('role:super_admin')->group(function () {
+        Route::patch('/users/{user}/toggle', [UserController::class, 'toggle'])->name('users.toggle');
+        Route::resource('users', UserController::class)->except(['show']);
     });
 });
 

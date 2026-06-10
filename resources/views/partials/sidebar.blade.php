@@ -23,7 +23,7 @@
         [
             'label'   => 'Users',
             'icon'    => 'cog',
-            'href'    => '#',
+            'route'   => 'users.index',
             'active'  => request()->routeIs('users.*'),
             'roles'   => [User::ROLE_SUPER_ADMIN],
         ],

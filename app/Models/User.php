@@ -44,6 +44,7 @@ class User extends Authenticatable
         'email',
         'password',
         'role',
+        'is_active',
     ];
 
     /**
@@ -66,6 +67,7 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'is_active' => 'boolean',
         ];
     }
 
@@ -109,6 +111,14 @@ class User extends Authenticatable
     public function getRoleLabelAttribute(): string
     {
         return self::ROLES[$this->role] ?? $this->role;
+    }
+
+    /**
+     * Get the human-readable label for the user's active status.
+     */
+    public function getStatusLabelAttribute(): string
+    {
+        return $this->is_active ? 'Active' : 'Inactive';
     }
 
     /**

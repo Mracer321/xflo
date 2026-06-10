@@ -40,5 +40,25 @@ class UserSeeder extends Seeder
                 ],
             );
         }
+
+        // Sample users for User Management testing (includes one inactive account).
+        $sampleUsers = [
+            ['name' => 'Sara Sales',     'email' => 'sara@xflow.com',   'role' => User::ROLE_SALES,       'is_active' => true],
+            ['name' => 'Dev Dana',       'email' => 'dana@xflow.com',   'role' => User::ROLE_DEVELOPER,   'is_active' => true],
+            ['name' => 'Leo Leads',      'email' => 'leo@xflow.com',    'role' => User::ROLE_LEADS_ADMIN, 'is_active' => true],
+            ['name' => 'Ina Inactive',   'email' => 'ina@xflow.com',    'role' => User::ROLE_SALES,       'is_active' => false],
+        ];
+
+        foreach ($sampleUsers as $user) {
+            User::updateOrCreate(
+                ['email' => $user['email']],
+                [
+                    'name'      => $user['name'],
+                    'password'  => Hash::make('Password'),
+                    'role'      => $user['role'],
+                    'is_active' => $user['is_active'],
+                ],
+            );
+        }
     }
 }

@@ -35,6 +35,15 @@ class LoginController extends Controller
             ]);
         }
 
+        // Inactive accounts may authenticate but are not allowed a session.
+        if (! Auth::user()->is_active) {
+            Auth::logout();
+
+            throw ValidationException::withMessages([
+                'email' => 'Your account is inactive. Please contact an administrator.',
+            ]);
+        }
+
         $request->session()->regenerate();
 
         return redirect()->intended(route('dashboard'));
