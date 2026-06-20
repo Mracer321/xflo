@@ -40,31 +40,103 @@
             @endif
         </div>
 
-        {{-- Filter / search bar --}}
+        {{-- Filter / search bar — fields shown are scoped to the user's role
+             (see LeadController::allowedFilters); $visibleFilters is the
+             authoritative list and is also enforced in the query. --}}
         <form method="GET" action="{{ route('leads.index') }}"
             class="grid grid-cols-1 gap-3 rounded-xl border border-gray-200 bg-white p-4 sm:grid-cols-2 lg:grid-cols-12">
-            <div class="lg:col-span-5">
+
+            {{-- Search (all roles) --}}
+            <div class="lg:col-span-4">
                 <input type="text" name="search" value="{{ $filters['search'] }}"
                     placeholder="Search name, owner, email, phone, category…"
                     class="block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-none">
             </div>
+
+            {{-- Legacy pipeline status (Super Admin) --}}
+            @if (in_array('status', $visibleFilters))
+                <div class="lg:col-span-3">
+                    <select name="status"
+                        class="block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-none">
+                        <option value="">All statuses</option>
+                        @foreach ($statuses as $key => $label)
+                            <option value="{{ $key }}" @selected($filters['status'] === $key)>{{ $label }}</option>
+                        @endforeach
+                    </select>
+                </div>
+            @endif
+
+            {{-- Website (Super Admin) --}}
+            @if (in_array('website', $visibleFilters))
+                <div class="lg:col-span-2">
+                    <select name="website"
+                        class="block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-none">
+                        <option value="">Website: any</option>
+                        <option value="1" @selected($filters['website'] === '1')>Has website</option>
+                        <option value="0" @selected($filters['website'] === '0')>No website</option>
+                    </select>
+                </div>
+            @endif
+
+            {{-- Workflow status (all roles) --}}
             <div class="lg:col-span-3">
-                <select name="status"
+                <select name="workflow_status"
                     class="block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-none">
-                    <option value="">All statuses</option>
-                    @foreach ($statuses as $key => $label)
-                        <option value="{{ $key }}" @selected($filters['status'] === $key)>{{ $label }}</option>
+                    <option value="">All workflow stages</option>
+                    @foreach ($workflowStatuses as $key => $label)
+                        <option value="{{ $key }}" @selected($filters['workflow_status'] === $key)>{{ $label }}</option>
                     @endforeach
                 </select>
             </div>
-            <div class="lg:col-span-2">
-                <select name="website"
+
+            {{-- Demo status (all roles) --}}
+            <div class="lg:col-span-3">
+                <select name="demo_status"
                     class="block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-none">
-                    <option value="">Website: any</option>
-                    <option value="1" @selected($filters['website'] === '1')>Has website</option>
-                    <option value="0" @selected($filters['website'] === '0')>No website</option>
+                    <option value="">All demo statuses</option>
+                    @foreach ($demoStatuses as $key => $label)
+                        <option value="{{ $key }}" @selected($filters['demo_status'] === $key)>{{ $label }}</option>
+                    @endforeach
                 </select>
             </div>
+
+            {{-- Assigned developer (Super Admin, Leads Admin) --}}
+            @if (in_array('developer_id', $visibleFilters))
+                <div class="lg:col-span-3">
+                    <select name="developer_id"
+                        class="block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-none">
+                        <option value="">All developers</option>
+                        @foreach ($developers as $developer)
+                            <option value="{{ $developer->id }}" @selected((string) $filters['developer_id'] === (string) $developer->id)>{{ $developer->name }}</option>
+                        @endforeach
+                    </select>
+                </div>
+            @endif
+
+            {{-- Created by (Super Admin) --}}
+            @if (in_array('created_by', $visibleFilters))
+                <div class="lg:col-span-3">
+                    <select name="created_by"
+                        class="block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-none">
+                        <option value="">All creators</option>
+                        @foreach ($creators as $creator)
+                            <option value="{{ $creator->id }}" @selected((string) $filters['created_by'] === (string) $creator->id)>{{ $creator->name }}</option>
+                        @endforeach
+                    </select>
+                </div>
+            @endif
+
+            {{-- Date range (all roles) --}}
+            <div class="lg:col-span-3">
+                <input type="date" name="date_from" value="{{ $filters['date_from'] }}" title="Created from"
+                    class="block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-none">
+            </div>
+            <div class="lg:col-span-3">
+                <input type="date" name="date_to" value="{{ $filters['date_to'] }}" title="Created to"
+                    class="block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-none">
+            </div>
+
+            {{-- Actions (all roles) --}}
             <div class="flex gap-2 lg:col-span-2">
                 <button type="submit"
                     class="flex-1 rounded-md bg-gray-800 px-4 py-2 text-sm font-medium text-white hover:bg-gray-900">
@@ -115,6 +187,7 @@
                         <th class="px-4 py-3">Business</th>
                         <th class="px-4 py-3">Contact</th>
                         <th class="px-4 py-3">Category</th>
+                        <th class="px-4 py-3">Workflow</th>
                         <th class="px-4 py-3">Status</th>
                         <th class="px-4 py-3 text-right">Actions</th>
                     </tr>
@@ -188,6 +261,14 @@
                                 {{ $lead->category ?: '—' }}
                             </td>
 
+                            {{-- Workflow --}}
+                            <td class="px-4 py-3">
+                                <x-workflow-badge :status="$lead->workflow_status" />
+                                @if ($lead->developer)
+                                    <div class="mt-1 text-xs text-gray-400">{{ $lead->developer->name }}</div>
+                                @endif
+                            </td>
+
                             {{-- Status --}}
                             <td class="px-4 py-3">
                                 <span class="inline-flex rounded-full bg-indigo-50 px-2.5 py-0.5 text-xs font-medium text-indigo-700">
@@ -222,7 +303,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="{{ $canManage ? 6 : 5 }}" class="px-4 py-10 text-center text-sm text-gray-500">
+                            <td colspan="{{ $canManage ? 7 : 6 }}" class="px-4 py-10 text-center text-sm text-gray-500">
                                 No leads found.
                                 @if ($canManage)
                                     <a href="{{ route('leads.create') }}" class="font-medium text-indigo-600 hover:underline">Create one</a>.

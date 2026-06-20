@@ -128,4 +128,12 @@ class User extends Authenticatable
     {
         return $this->hasMany(DeveloperTask::class, 'developer_id');
     }
+
+    /**
+     * Leads assigned to this user via the Phase 5 demo workflow.
+     */
+    public function assignedLeads(): HasMany
+    {
+        return $this->hasMany(Lead::class, 'developer_id');
+    }
 }

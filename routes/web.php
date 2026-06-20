@@ -5,6 +5,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DeveloperTaskController;
 use App\Http\Controllers\LeadAssetController;
 use App\Http\Controllers\LeadController;
+use App\Http\Controllers\LeadWorkflowController;
 use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
 
@@ -70,6 +71,44 @@ Route::middleware('auth')->group(function () {
         // Developer workflow update (authorization enforced in the form request).
         Route::put('/developer-tasks/{developerTask}', [DeveloperTaskController::class, 'update'])
             ->name('developer-tasks.update');
+    });
+
+    /*
+    |----------------------------------------------------------------------
+    | Phase 5 demo workflow transitions (fine-grained authorization lives
+    | in the form requests; middleware provides a coarse role gate).
+    |----------------------------------------------------------------------
+    */
+    // Assign developer (Super Admin, Leads Admin).
+    Route::middleware('role:super_admin,leads_admin')->group(function () {
+        Route::post('/leads/{lead}/assign', [LeadWorkflowController::class, 'assign'])
+            ->name('leads.assign');
+    });
+
+    // Developer demo update (Super Admin, assigned Developer).
+    Route::middleware('role:super_admin,developer')->group(function () {
+        Route::put('/leads/{lead}/demo', [LeadWorkflowController::class, 'demoUpdate'])
+            ->name('leads.demo.update');
+    });
+
+    // Sales / follow-up update (Super Admin, Leads Admin, Sales).
+    Route::middleware('role:super_admin,leads_admin,sales')->group(function () {
+        Route::put('/leads/{lead}/sales', [LeadWorkflowController::class, 'salesUpdate'])
+            ->name('leads.sales.update');
+    });
+
+    /*
+    |----------------------------------------------------------------------
+    | Phase 5.1 demo lifecycle (Live/Offline: Super Admin, Leads Admin,
+    | assigned Developer — enforced in the form request. Force delete:
+    | Super Admin / Leads Admin only — enforced in the controller).
+    |----------------------------------------------------------------------
+    */
+    Route::middleware('role:super_admin,leads_admin,developer')->group(function () {
+        Route::put('/leads/{lead}/demo-status', [LeadWorkflowController::class, 'demoStatusUpdate'])
+            ->name('leads.demo-status.update');
+        Route::delete('/leads/{lead}/demo', [LeadWorkflowController::class, 'forceDeleteDemo'])
+            ->name('leads.demo.force-delete');
     });
 
     /*

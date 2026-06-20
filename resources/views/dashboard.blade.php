@@ -11,28 +11,35 @@
             </p>
         </div>
 
-        {{-- Stat cards --}}
-        <div class="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
-            @foreach ([
-                ['label' => 'Total Leads', 'value' => '—', 'hint' => 'No data yet'],
-                ['label' => 'Open Deals', 'value' => '—', 'hint' => 'No data yet'],
-                ['label' => 'Won This Month', 'value' => '—', 'hint' => 'No data yet'],
-                ['label' => 'Active Users', 'value' => '—', 'hint' => 'No data yet'],
-            ] as $card)
+        {{-- Role-aware workflow widgets --}}
+        @php
+            $tones = [
+                'indigo' => 'text-indigo-600',
+                'amber'  => 'text-amber-600',
+                'green'  => 'text-green-600',
+                'blue'   => 'text-blue-600',
+                'red'    => 'text-red-600',
+            ];
+        @endphp
+        <div class="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
+            @foreach ($widgets as $card)
                 <div class="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
                     <p class="text-sm font-medium text-gray-500">{{ $card['label'] }}</p>
-                    <p class="mt-2 text-3xl font-bold text-gray-900">{{ $card['value'] }}</p>
-                    <p class="mt-1 text-xs text-gray-400">{{ $card['hint'] }}</p>
+                    <p class="mt-2 text-3xl font-bold {{ $tones[$card['tone']] ?? 'text-gray-900' }}">{{ $card['value'] }}</p>
                 </div>
             @endforeach
         </div>
 
-        {{-- Placeholder panel --}}
+        {{-- Quick link --}}
         <div class="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-            <h3 class="text-base font-semibold text-gray-900">Getting started</h3>
+            <h3 class="text-base font-semibold text-gray-900">Demo Workflow</h3>
             <p class="mt-2 text-sm text-gray-600">
-                Your XFlow workspace is ready. Modules like Leads and Users will appear here as they are built.
+                Track each lead from assignment through demo creation, sending, follow-up and final result.
             </p>
+            <a href="{{ route('leads.index') }}"
+                class="mt-3 inline-flex items-center gap-2 rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700">
+                Go to Leads
+            </a>
         </div>
     </div>
 </x-layouts.app>

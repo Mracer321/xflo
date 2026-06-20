@@ -4,6 +4,11 @@
         $canManage = $user->hasAnyRole(['super_admin', 'leads_admin', 'sales']);
         $canAssign = $user->hasAnyRole(['super_admin', 'leads_admin']);
         $task = $lead->developerTask;
+
+        // Phase 5 workflow capabilities
+        $isAdmin = $user->hasAnyRole(['super_admin', 'leads_admin']);
+        $canDemo = $user->isSuperAdmin() || ($user->isDeveloper() && $lead->developer_id === $user->id);
+        $canSales = $user->hasAnyRole(['super_admin', 'leads_admin', 'sales']);
     @endphp
 
     <div class="mx-auto max-w-5xl space-y-6">
@@ -15,6 +20,9 @@
         @if (session('status'))
             <div class="rounded-md bg-green-50 px-4 py-3 text-sm text-green-700">{{ session('status') }}</div>
         @endif
+        @if (session('error'))
+            <div class="rounded-md bg-red-50 px-4 py-3 text-sm text-red-700">{{ session('error') }}</div>
+        @endif
 
         {{-- Header --}}
         <div class="flex items-start justify-between gap-4">
@@ -22,7 +30,8 @@
                 <h2 class="text-2xl font-bold text-gray-900">{{ $lead->business_name }}</h2>
                 <div class="mt-1 flex items-center gap-2 text-sm text-gray-500">
                     @if ($lead->owner_name)<span>{{ $lead->owner_name }}</span>@endif
-                    <span class="inline-flex rounded-full bg-indigo-50 px-2.5 py-0.5 text-xs font-medium text-indigo-700">
+                    <x-workflow-badge :status="$lead->workflow_status" />
+                    <span class="inline-flex rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-600">
                         {{ $lead->status_label }}
                     </span>
                 </div>
@@ -82,6 +91,157 @@
                     @endif
                 @endforeach
             </div>
+        </div>
+
+        {{-- =================== Phase 5: Demo Workflow =================== --}}
+        <div class="rounded-xl border border-gray-200 bg-white p-6">
+            <div class="mb-4 flex items-center justify-between">
+                <h3 class="text-sm font-semibold text-gray-900">Demo Workflow</h3>
+                <x-workflow-badge :status="$lead->workflow_status" />
+            </div>
+
+            {{-- Assignment --}}
+            <div class="mb-5">
+                <dt class="text-xs font-medium uppercase tracking-wide text-gray-400">Assigned Developer</dt>
+                <dd class="mt-0.5 text-sm text-gray-800">{{ $lead->developer?->name ?? 'Not assigned' }}</dd>
+
+                @if ($canAssign)
+                    <form method="POST" action="{{ route('leads.assign', $lead) }}" class="mt-2 flex items-center gap-2">
+                        @csrf
+                        <select name="developer_id" required
+                            class="rounded-md border border-gray-300 px-3 py-1.5 text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-none">
+                            <option value="">Select developer…</option>
+                            @foreach ($developers as $developer)
+                                <option value="{{ $developer->id }}" @selected($lead->developer_id === $developer->id)>{{ $developer->name }}</option>
+                            @endforeach
+                        </select>
+                        <button type="submit"
+                            class="rounded-md bg-gray-800 px-3 py-1.5 text-sm font-medium text-white hover:bg-gray-900">
+                            {{ $lead->developer_id ? 'Reassign' : 'Assign' }}
+                        </button>
+                    </form>
+                    @error('developer_id') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
+                @endif
+            </div>
+
+            {{-- Demo summary --}}
+            <dl class="grid grid-cols-1 gap-x-6 gap-y-4 border-t border-gray-100 pt-4 sm:grid-cols-2">
+                <div class="sm:col-span-2">
+                    <dt class="text-xs font-medium uppercase tracking-wide text-gray-400">Demo URL</dt>
+                    <dd class="mt-0.5 text-sm">
+                        @if ($lead->demo_url)
+                            <a href="{{ $lead->demo_url }}" target="_blank" rel="noopener" class="text-indigo-600 hover:underline">{{ $lead->demo_url }}</a>
+                        @else
+                            <span class="text-gray-400">—</span>
+                        @endif
+                    </dd>
+                </div>
+                <div>
+                    <dt class="text-xs font-medium uppercase tracking-wide text-gray-400">Demo Created</dt>
+                    <dd class="mt-0.5 text-sm text-gray-800">{{ $lead->demo_created_at?->format('M j, Y g:i A') ?? '—' }}</dd>
+                </div>
+                <div>
+                    <dt class="text-xs font-medium uppercase tracking-wide text-gray-400">Demo Sent</dt>
+                    <dd class="mt-0.5 text-sm text-gray-800">{{ $lead->demo_sent_at?->format('M j, Y g:i A') ?? '—' }}</dd>
+                </div>
+                @if ($lead->demo_notes)
+                    <div class="sm:col-span-2">
+                        <dt class="text-xs font-medium uppercase tracking-wide text-gray-400">Developer Notes</dt>
+                        <dd class="mt-0.5 whitespace-pre-line text-sm text-gray-800">{{ $lead->demo_notes }}</dd>
+                    </div>
+                @endif
+                @if ($lead->sales_notes)
+                    <div class="sm:col-span-2">
+                        <dt class="text-xs font-medium uppercase tracking-wide text-gray-400">Sales Notes</dt>
+                        <dd class="mt-0.5 whitespace-pre-line text-sm text-gray-800">{{ $lead->sales_notes }}</dd>
+                    </div>
+                @endif
+            </dl>
+
+            {{-- Developer actions --}}
+            @if ($canDemo)
+                <form method="POST" action="{{ route('leads.demo.update', $lead) }}" class="mt-5 space-y-4 border-t border-gray-100 pt-5">
+                    @csrf
+                    @method('PUT')
+                    <p class="text-xs font-semibold uppercase tracking-wide text-gray-500">Developer Actions</p>
+                    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                        <div>
+                            <label for="demo_status" class="block text-sm font-medium text-gray-700 mb-1">Demo Status</label>
+                            <select id="demo_status" name="workflow_status"
+                                class="block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-none">
+                                @foreach ($devWorkflowStatuses as $key)
+                                    <option value="{{ $key }}" @selected($lead->workflow_status === $key)>{{ $workflowStatuses[$key] }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div>
+                            <label for="demo_url" class="block text-sm font-medium text-gray-700 mb-1">Demo URL</label>
+                            <input id="demo_url" name="demo_url" type="url" placeholder="https://…" value="{{ old('demo_url', $lead->demo_url) }}"
+                                class="block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-none">
+                        </div>
+                    </div>
+                    <div>
+                        <label for="demo_notes" class="block text-sm font-medium text-gray-700 mb-1">Developer Notes</label>
+                        <textarea id="demo_notes" name="demo_notes" rows="3"
+                            class="block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-none">{{ old('demo_notes', $lead->demo_notes) }}</textarea>
+                    </div>
+                    <div class="flex justify-end">
+                        <button type="submit" class="rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700">Save Demo Update</button>
+                    </div>
+                </form>
+            @endif
+
+            {{-- Sales actions --}}
+            @if ($canSales)
+                <form method="POST" action="{{ route('leads.sales.update', $lead) }}" class="mt-5 space-y-4 border-t border-gray-100 pt-5">
+                    @csrf
+                    @method('PUT')
+                    <p class="text-xs font-semibold uppercase tracking-wide text-gray-500">Sales Actions</p>
+                    <div>
+                        <label for="sales_status" class="block text-sm font-medium text-gray-700 mb-1">Sales Status</label>
+                        <select id="sales_status" name="workflow_status"
+                            class="block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-none sm:max-w-xs">
+                            @foreach ($salesWorkflowStatuses as $key)
+                                <option value="{{ $key }}" @selected($lead->workflow_status === $key)>{{ $workflowStatuses[$key] }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div>
+                        <label for="sales_notes" class="block text-sm font-medium text-gray-700 mb-1">Sales Notes</label>
+                        <textarea id="sales_notes" name="sales_notes" rows="3"
+                            class="block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-none">{{ old('sales_notes', $lead->sales_notes) }}</textarea>
+                    </div>
+                    <div class="flex justify-end">
+                        <button type="submit" class="rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700">Save Sales Update</button>
+                    </div>
+                </form>
+            @endif
+        </div>
+
+        {{-- =================== Timeline =================== --}}
+        <div class="rounded-xl border border-gray-200 bg-white p-6">
+            <h3 class="mb-4 text-sm font-semibold text-gray-900">Timeline</h3>
+            @if ($lead->events->isEmpty())
+                <p class="text-sm text-gray-400">No activity yet.</p>
+            @else
+                <ol class="space-y-4">
+                    @foreach ($lead->events as $event)
+                        <li class="flex gap-3">
+                            <div class="mt-1 flex h-2 w-2 shrink-0 rounded-full bg-indigo-500"></div>
+                            <div>
+                                <p class="text-sm font-medium text-gray-900">{{ $event->type_label }}</p>
+                                @if ($event->description)
+                                    <p class="text-sm text-gray-600">{{ $event->description }}</p>
+                                @endif
+                                <p class="text-xs text-gray-400">
+                                    {{ $event->created_at->format('M j, Y g:i A') }}
+                                    @if ($event->user) &middot; {{ $event->user->name }} @endif
+                                </p>
+                            </div>
+                        </li>
+                    @endforeach
+                </ol>
+            @endif
         </div>
 
         {{-- Assets (grouped by type) --}}
