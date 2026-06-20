@@ -22,7 +22,7 @@ class LeadWorkflowController extends Controller
         $developer = User::find($developerId);
 
         $lead->update([
-            'developer_id'    => $developerId,
+            'developer_id' => $developerId,
             'workflow_status' => Lead::WF_ASSIGNED,
         ]);
 
@@ -52,10 +52,7 @@ class LeadWorkflowController extends Controller
         $lead->save();
 
         if ($statusChanged) {
-            $lead->recordEvent(
-                $newStatus === Lead::WF_DEMO_READY ? LeadEvent::TYPE_DEMO_READY : LeadEvent::TYPE_DEMO_STARTED,
-                $newStatus === Lead::WF_DEMO_READY ? 'Demo marked ready.' : 'Demo development started.',
-            );
+            $this->recordWorkflowEvent($lead, $newStatus);
         }
 
         return back()->with('status', 'Demo details updated successfully.');
@@ -76,15 +73,17 @@ class LeadWorkflowController extends Controller
             $lead->demo_sent_at = now();
         }
 
+        // Stamp the demo-created time if an admin marks it ready from here.
+        if ($newStatus === Lead::WF_DEMO_READY && ! $lead->demo_created_at) {
+            $lead->demo_created_at = now();
+        }
+
         $statusChanged = $lead->workflow_status !== $newStatus;
         $lead->workflow_status = $newStatus;
         $lead->save();
 
         if ($statusChanged) {
-            $lead->recordEvent(
-                self::SALES_EVENT_MAP[$newStatus],
-                'Status updated to '.Lead::WORKFLOW_STATUSES[$newStatus].'.',
-            );
+            $this->recordWorkflowEvent($lead, $newStatus);
         }
 
         return back()->with('status', 'Sales details updated successfully.');
@@ -145,12 +144,28 @@ class LeadWorkflowController extends Controller
     }
 
     /**
-     * Map a sales workflow status to its timeline event type.
+     * Record the timeline event for a workflow-status transition.
+     *
+     * Centralised so the developer and sales update paths stay consistent and
+     * every stage maps to its correct event type and description.
      */
-    private const SALES_EVENT_MAP = [
-        Lead::WF_DEMO_SENT => LeadEvent::TYPE_DEMO_SENT,
-        Lead::WF_FOLLOW_UP => LeadEvent::TYPE_FOLLOW_UP,
-        Lead::WF_CONVERTED => LeadEvent::TYPE_CONVERTED,
-        Lead::WF_REJECTED => LeadEvent::TYPE_REJECTED,
-    ];
+    private function recordWorkflowEvent(Lead $lead, string $status): void
+    {
+        $map = [
+            Lead::WF_ASSIGNED => [LeadEvent::TYPE_ASSIGNED, 'Status set to Assigned.'],
+            Lead::WF_DEMO_IN_PROGRESS => [LeadEvent::TYPE_DEMO_STARTED, 'Demo development started.'],
+            Lead::WF_DEMO_READY => [LeadEvent::TYPE_DEMO_READY, 'Demo marked ready.'],
+            Lead::WF_DEMO_SENT => [LeadEvent::TYPE_DEMO_SENT, 'Status updated to Demo Sent.'],
+            Lead::WF_FOLLOW_UP => [LeadEvent::TYPE_FOLLOW_UP, 'Status updated to Follow Up.'],
+            Lead::WF_CONVERTED => [LeadEvent::TYPE_CONVERTED, 'Status updated to Converted.'],
+            Lead::WF_REJECTED => [LeadEvent::TYPE_REJECTED, 'Status updated to Rejected.'],
+        ];
+
+        if (! isset($map[$status])) {
+            return;
+        }
+
+        [$type, $description] = $map[$status];
+        $lead->recordEvent($type, $description);
+    }
 }

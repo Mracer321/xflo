@@ -85,8 +85,8 @@ Route::middleware('auth')->group(function () {
             ->name('leads.assign');
     });
 
-    // Developer demo update (Super Admin, assigned Developer).
-    Route::middleware('role:super_admin,developer')->group(function () {
+    // Developer demo update (Super Admin, Leads Manager, assigned Developer).
+    Route::middleware('role:super_admin,leads_admin,developer')->group(function () {
         Route::put('/leads/{lead}/demo', [LeadWorkflowController::class, 'demoUpdate'])
             ->name('leads.demo.update');
     });

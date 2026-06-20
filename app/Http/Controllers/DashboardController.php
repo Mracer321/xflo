@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Lead;
+use App\Models\User;
 use Illuminate\View\View;
 
 class DashboardController extends Controller
@@ -32,15 +33,16 @@ class DashboardController extends Controller
             return [
                 ['label' => 'Assigned Leads', 'value' => (clone $assigned)->count(), 'tone' => 'indigo'],
                 ['label' => 'Demo In Progress', 'value' => (clone $assigned)->where('workflow_status', Lead::WF_DEMO_IN_PROGRESS)->count(), 'tone' => 'amber'],
-                ['label' => 'Demo Ready Today', 'value' => (clone $assigned)->where('workflow_status', Lead::WF_DEMO_READY)->whereDate('demo_created_at', today())->count(), 'tone' => 'green'],
+                ['label' => 'Demo Ready', 'value' => (clone $assigned)->where('workflow_status', Lead::WF_DEMO_READY)->count(), 'tone' => 'green'],
             ];
         }
 
-        if ($user->hasRole(\App\Models\User::ROLE_SALES)) {
+        if ($user->hasRole(User::ROLE_SALES)) {
             return [
-                ['label' => 'Demos Pending to Send', 'value' => Lead::where('workflow_status', Lead::WF_DEMO_READY)->count(), 'tone' => 'amber'],
+                ['label' => 'Demo Ready', 'value' => Lead::where('workflow_status', Lead::WF_DEMO_READY)->count(), 'tone' => 'amber'],
+                ['label' => 'Demo Sent', 'value' => Lead::where('workflow_status', Lead::WF_DEMO_SENT)->count(), 'tone' => 'blue'],
                 ['label' => 'Follow Ups Pending', 'value' => Lead::where('workflow_status', Lead::WF_FOLLOW_UP)->count(), 'tone' => 'indigo'],
-                ['label' => 'Converted Leads', 'value' => Lead::where('workflow_status', Lead::WF_CONVERTED)->count(), 'tone' => 'green'],
+                ['label' => 'Converted', 'value' => Lead::where('workflow_status', Lead::WF_CONVERTED)->count(), 'tone' => 'green'],
             ];
         }
 

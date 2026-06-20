@@ -7,7 +7,8 @@
 
         // Phase 5 workflow capabilities
         $isAdmin = $user->hasAnyRole(['super_admin', 'leads_admin']);
-        $canDemo = $user->isSuperAdmin() || ($user->isDeveloper() && $lead->developer_id === $user->id);
+        // Admins have full workflow visibility; developers only on their own leads.
+        $canDemo = $isAdmin || ($user->isDeveloper() && $lead->developer_id === $user->id);
         $canSales = $user->hasAnyRole(['super_admin', 'leads_admin', 'sales']);
     @endphp
 

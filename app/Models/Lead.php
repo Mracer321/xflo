@@ -87,46 +87,24 @@ class Lead extends Model
     ];
 
     /**
-     * Workflow statuses a developer may set.
+     * Workflow stages a developer owns — the ones they may both set and filter
+     * the lead list by (their part of the demo-build pipeline).
      *
      * @var array<int, string>
      */
     public const DEV_WORKFLOW_STATUSES = [
-        self::WF_DEMO_IN_PROGRESS,
-        self::WF_DEMO_READY,
-    ];
-
-    /**
-     * Workflow statuses a salesperson may set.
-     *
-     * @var array<int, string>
-     */
-    public const SALES_WORKFLOW_STATUSES = [
-        self::WF_DEMO_SENT,
-        self::WF_FOLLOW_UP,
-        self::WF_CONVERTED,
-        self::WF_REJECTED,
-    ];
-
-    /**
-     * Workflow stages a developer may filter the lead list by — the stages
-     * relevant to their part of the pipeline.
-     *
-     * @var array<int, string>
-     */
-    public const DEV_FILTER_WORKFLOW_STATUSES = [
         self::WF_ASSIGNED,
         self::WF_DEMO_IN_PROGRESS,
         self::WF_DEMO_READY,
     ];
 
     /**
-     * Workflow stages a salesperson may filter the lead list by — from the
-     * point a demo is ready through to the final outcome.
+     * Workflow stages a salesperson owns — the ones they may both set and filter
+     * by, from the point a demo is ready through to the final outcome.
      *
      * @var array<int, string>
      */
-    public const SALES_FILTER_WORKFLOW_STATUSES = [
+    public const SALES_WORKFLOW_STATUSES = [
         self::WF_DEMO_READY,
         self::WF_DEMO_SENT,
         self::WF_FOLLOW_UP,
@@ -260,8 +238,8 @@ class Lead extends Model
     public static function workflowStatusOptionsFor(User $user): array
     {
         $keys = match (true) {
-            $user->isDeveloper() => self::DEV_FILTER_WORKFLOW_STATUSES,
-            $user->hasRole(User::ROLE_SALES) => self::SALES_FILTER_WORKFLOW_STATUSES,
+            $user->isDeveloper() => self::DEV_WORKFLOW_STATUSES,
+            $user->hasRole(User::ROLE_SALES) => self::SALES_WORKFLOW_STATUSES,
             default => array_keys(self::WORKFLOW_STATUSES), // super_admin, leads_admin
         };
 

@@ -4,6 +4,7 @@ namespace App\Http\Requests;
 
 use App\Models\Lead;
 use App\Models\User;
+use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -23,10 +24,12 @@ class UpdateLeadDemoRequest extends FormRequest
             return false;
         }
 
-        if ($user->isSuperAdmin()) {
+        // Admins (Super Admin, Leads Manager) have full workflow visibility.
+        if ($user->hasAnyRole([User::ROLE_SUPER_ADMIN, User::ROLE_LEADS_ADMIN])) {
             return true;
         }
 
+        // Developers may only update demo fields on leads assigned to them.
         $lead = $this->route('lead');
 
         return $user->isDeveloper()
@@ -37,15 +40,15 @@ class UpdateLeadDemoRequest extends FormRequest
     /**
      * Get the validation rules that apply to the request.
      *
-     * @return array<string, \Illuminate\Contracts\Validation\ValidationRule|array<mixed>|string>
+     * @return array<string, ValidationRule|array<mixed>|string>
      */
     public function rules(): array
     {
         return [
             // Developers may only move the workflow to demo-in-progress or demo-ready.
             'workflow_status' => ['required', Rule::in(Lead::DEV_WORKFLOW_STATUSES)],
-            'demo_url'        => ['nullable', 'url', 'max:2048'],
-            'demo_notes'      => ['nullable', 'string', 'max:5000'],
+            'demo_url' => ['nullable', 'url', 'max:2048'],
+            'demo_notes' => ['nullable', 'string', 'max:5000'],
         ];
     }
 }
