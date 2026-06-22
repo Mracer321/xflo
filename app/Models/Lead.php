@@ -283,12 +283,18 @@ class Lead extends Model
     /**
      * Record a timeline event for this lead.
      */
-    public function recordEvent(string $type, ?string $description = null): LeadEvent
-    {
+    public function recordEvent(
+        string $type,
+        ?string $description = null,
+        ?string $oldValue = null,
+        ?string $newValue = null,
+    ): LeadEvent {
         return $this->events()->create([
             'user_id' => auth()->id(),
             'type' => $type,
             'description' => $description,
+            'old_value' => $oldValue,
+            'new_value' => $newValue,
         ]);
     }
 

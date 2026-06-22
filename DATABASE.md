@@ -82,8 +82,10 @@ Built across three migrations (create + Phase 5 workflow + Phase 5.1 lifecycle).
 | id | bigint PK | |
 | lead_id | FK→leads | cascadeOnDelete |
 | user_id | FK→users | nullable, nullOnDelete (actor) |
-| type | string | INDEX; created, assigned, demo_started, demo_ready, demo_sent, follow_up, converted, rejected, note, demo_created, demo_offline, demo_reactivated, demo_deleted |
-| description | text | nullable |
+| type | string | INDEX; created, updated, assigned, developer_changed, demo_started, demo_ready, demo_url_added, demo_sent, follow_up, converted, rejected, note, demo_created, demo_offline, demo_reactivated, demo_deleted |
+| description | text | nullable (human-readable notes) |
+| old_value | text | nullable (Phase 5.2 — value before a transition) |
+| new_value | text | nullable (Phase 5.2 — value after a transition) |
 | timestamps | | |
 
 ### `lead_assets`

@@ -234,6 +234,15 @@
                                 @if ($event->description)
                                     <p class="text-sm text-gray-600">{{ $event->description }}</p>
                                 @endif
+                                @if ($event->old_value || $event->new_value)
+                                    <p class="mt-0.5 flex flex-wrap items-center gap-1 text-xs">
+                                        @if ($event->old_value)
+                                            <span class="text-gray-400 line-through">{{ $event->old_value }}</span>
+                                            <span class="text-gray-400">&rarr;</span>
+                                        @endif
+                                        <span class="font-medium text-gray-700">{{ $event->new_value }}</span>
+                                    </p>
+                                @endif
                                 <p class="text-xs text-gray-400">
                                     {{ $event->created_at->format('M j, Y g:i A') }}
                                     @if ($event->user) &middot; {{ $event->user->name }} @endif

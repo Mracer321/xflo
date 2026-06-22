@@ -21,12 +21,31 @@ class LeadWorkflowController extends Controller
         $developerId = (int) $request->validated()['developer_id'];
         $developer = User::find($developerId);
 
+        // Capture the previously-assigned developer to tell "assigned" (first
+        // time) apart from "changed" (reassignment) on the timeline.
+        $previous = $lead->developer;
+        $isReassignment = $previous && $previous->id !== $developerId;
+
         $lead->update([
             'developer_id' => $developerId,
             'workflow_status' => Lead::WF_ASSIGNED,
         ]);
 
-        $lead->recordEvent(LeadEvent::TYPE_ASSIGNED, "Assigned to {$developer?->name}.");
+        if ($isReassignment) {
+            $lead->recordEvent(
+                LeadEvent::TYPE_DEVELOPER_CHANGED,
+                "Developer changed from {$previous->name} to {$developer?->name}.",
+                $previous->name,
+                $developer?->name,
+            );
+        } else {
+            $lead->recordEvent(
+                LeadEvent::TYPE_ASSIGNED,
+                "Assigned to {$developer?->name}.",
+                null,
+                $developer?->name,
+            );
+        }
 
         return back()->with('status', 'Developer assigned successfully.');
     }
@@ -39,7 +58,11 @@ class LeadWorkflowController extends Controller
         $data = $request->validated();
         $newStatus = $data['workflow_status'];
 
-        $lead->demo_url = $data['demo_url'] ?? null;
+        $previousStatus = $lead->workflow_status;
+        $previousUrl = $lead->demo_url;
+        $newUrl = $data['demo_url'] ?? null;
+
+        $lead->demo_url = $newUrl;
         $lead->demo_notes = $data['demo_notes'] ?? null;
 
         // Stamp the demo creation time the first time it reaches "Demo Ready".
@@ -51,8 +74,13 @@ class LeadWorkflowController extends Controller
         $lead->workflow_status = $newStatus;
         $lead->save();
 
+        // A demo URL added for the first time is its own timeline event.
+        if (empty($previousUrl) && ! empty($newUrl)) {
+            $lead->recordEvent(LeadEvent::TYPE_DEMO_URL_ADDED, "Demo URL added: {$newUrl}", null, $newUrl);
+        }
+
         if ($statusChanged) {
-            $this->recordWorkflowEvent($lead, $newStatus);
+            $this->recordWorkflowEvent($lead, $newStatus, $previousStatus);
         }
 
         return back()->with('status', 'Demo details updated successfully.');
@@ -66,6 +94,7 @@ class LeadWorkflowController extends Controller
         $data = $request->validated();
         $newStatus = $data['workflow_status'];
 
+        $previousStatus = $lead->workflow_status;
         $lead->sales_notes = $data['sales_notes'] ?? null;
 
         // Stamp the demo-sent time the first time it is marked sent.
@@ -83,7 +112,7 @@ class LeadWorkflowController extends Controller
         $lead->save();
 
         if ($statusChanged) {
-            $this->recordWorkflowEvent($lead, $newStatus);
+            $this->recordWorkflowEvent($lead, $newStatus, $previousStatus);
         }
 
         return back()->with('status', 'Sales details updated successfully.');
@@ -149,7 +178,7 @@ class LeadWorkflowController extends Controller
      * Centralised so the developer and sales update paths stay consistent and
      * every stage maps to its correct event type and description.
      */
-    private function recordWorkflowEvent(Lead $lead, string $status): void
+    private function recordWorkflowEvent(Lead $lead, string $status, ?string $previousStatus = null): void
     {
         $map = [
             Lead::WF_ASSIGNED => [LeadEvent::TYPE_ASSIGNED, 'Status set to Assigned.'],
@@ -166,6 +195,12 @@ class LeadWorkflowController extends Controller
         }
 
         [$type, $description] = $map[$status];
-        $lead->recordEvent($type, $description);
+
+        // Record the human-readable labels for the status transition so the
+        // timeline can show "Old → New" and Phase 6 analytics can group on it.
+        $oldLabel = $previousStatus ? (Lead::WORKFLOW_STATUSES[$previousStatus] ?? $previousStatus) : null;
+        $newLabel = Lead::WORKFLOW_STATUSES[$status] ?? $status;
+
+        $lead->recordEvent($type, $description, $oldLabel, $newLabel);
     }
 }

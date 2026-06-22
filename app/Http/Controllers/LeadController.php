@@ -232,7 +232,17 @@ class LeadController extends Controller
      */
     public function update(UpdateLeadRequest $request, Lead $lead): RedirectResponse
     {
-        $lead->update($request->validated());
+        $lead->fill($request->validated());
+        $changed = array_keys($lead->getDirty());
+        $lead->save();
+
+        // Only log a timeline event when the edit actually changed something.
+        if ($changed !== []) {
+            $lead->recordEvent(
+                LeadEvent::TYPE_UPDATED,
+                'Lead details updated: '.implode(', ', $changed).'.',
+            );
+        }
 
         return redirect()->route('leads.index')
             ->with('status', 'Lead updated successfully.');

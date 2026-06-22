@@ -11,18 +11,36 @@ class LeadEvent extends Model
      * Timeline event types.
      */
     public const TYPE_CREATED = 'created';
+
+    public const TYPE_UPDATED = 'updated';
+
     public const TYPE_ASSIGNED = 'assigned';
+
+    public const TYPE_DEVELOPER_CHANGED = 'developer_changed';
+
     public const TYPE_DEMO_STARTED = 'demo_started';
+
     public const TYPE_DEMO_READY = 'demo_ready';
+
+    public const TYPE_DEMO_URL_ADDED = 'demo_url_added';
+
     public const TYPE_DEMO_SENT = 'demo_sent';
+
     public const TYPE_FOLLOW_UP = 'follow_up';
+
     public const TYPE_CONVERTED = 'converted';
+
     public const TYPE_REJECTED = 'rejected';
+
     public const TYPE_NOTE = 'note';
+
     // Phase 5.1 demo lifecycle events
     public const TYPE_DEMO_CREATED = 'demo_created';
+
     public const TYPE_DEMO_OFFLINE = 'demo_offline';
+
     public const TYPE_DEMO_REACTIVATED = 'demo_reactivated';
+
     public const TYPE_DEMO_DELETED = 'demo_deleted';
 
     /**
@@ -32,9 +50,12 @@ class LeadEvent extends Model
      */
     public const TYPES = [
         self::TYPE_CREATED => 'Lead Created',
+        self::TYPE_UPDATED => 'Lead Updated',
         self::TYPE_ASSIGNED => 'Assigned to Developer',
+        self::TYPE_DEVELOPER_CHANGED => 'Developer Changed',
         self::TYPE_DEMO_STARTED => 'Demo Started',
         self::TYPE_DEMO_READY => 'Demo Ready',
+        self::TYPE_DEMO_URL_ADDED => 'Demo URL Added',
         self::TYPE_DEMO_SENT => 'Demo Sent',
         self::TYPE_FOLLOW_UP => 'Follow Up',
         self::TYPE_CONVERTED => 'Converted',
@@ -56,6 +77,8 @@ class LeadEvent extends Model
         'user_id',
         'type',
         'description',
+        'old_value',
+        'new_value',
     ];
 
     /**
