@@ -40,8 +40,11 @@ Route::middleware('auth')->group(function () {
             ->name('leads.bulk-destroy');
 
         Route::resource('leads', LeadController::class)->only(['create', 'store', 'edit', 'update', 'destroy']);
+    });
 
-        // Assign a developer to a lead.
+    // Developer assignment is admin-only (Super Admin, Leads Manager) — Sales
+    // must never assign developers. Enforced here AND in StoreDeveloperTaskRequest.
+    Route::middleware('role:super_admin,leads_admin')->group(function () {
         Route::post('/leads/{lead}/developer-task', [DeveloperTaskController::class, 'store'])
             ->name('leads.developer-task.store');
     });
