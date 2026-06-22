@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\AnalyticsController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DeveloperTaskController;
@@ -28,6 +29,21 @@ Route::middleware('auth')->group(function () {
     Route::post('/logout', [LoginController::class, 'destroy'])->name('logout');
 
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+
+    /*
+    |----------------------------------------------------------------------
+    | Phase 6 analytics (all roles; data is scoped per role inside the
+    | controller — developers/sales see only their own figures).
+    |----------------------------------------------------------------------
+    */
+    Route::middleware('role:super_admin,leads_admin,sales,developer')->group(function () {
+        Route::get('/analytics', [AnalyticsController::class, 'index'])->name('analytics.index');
+    });
+
+    // Team performance page — Super Admin & Leads Manager only.
+    Route::middleware('role:super_admin,leads_admin')->group(function () {
+        Route::get('/analytics/team', [AnalyticsController::class, 'team'])->name('analytics.team');
+    });
 
     /*
     |----------------------------------------------------------------------
