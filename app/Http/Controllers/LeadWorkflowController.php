@@ -49,8 +49,10 @@ class LeadWorkflowController extends Controller
             );
         }
 
-        // Notify the newly-assigned developer (skip if they assigned themselves).
-        if ($developer && $developer->id !== auth()->id()) {
+        // Notify the developer only on a genuine (re)assignment — not when the
+        // already-assigned developer is saved again — and never self-notify.
+        $developerChanged = $previous?->id !== $developerId;
+        if ($developer && $developerChanged && $developer->id !== auth()->id()) {
             $developer->notify(new LeadAssignedNotification($lead));
         }
 
