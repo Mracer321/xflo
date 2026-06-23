@@ -3,12 +3,14 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\AssignLeadRequest;
+use App\Http\Requests\ScheduleFollowUpRequest;
 use App\Http\Requests\UpdateDemoStatusRequest;
 use App\Http\Requests\UpdateLeadDemoRequest;
 use App\Http\Requests\UpdateLeadSalesRequest;
 use App\Models\Lead;
 use App\Models\LeadEvent;
 use App\Models\User;
+use App\Notifications\LeadAssignedNotification;
 use Illuminate\Http\RedirectResponse;
 
 class LeadWorkflowController extends Controller
@@ -45,6 +47,11 @@ class LeadWorkflowController extends Controller
                 null,
                 $developer?->name,
             );
+        }
+
+        // Notify the newly-assigned developer (skip if they assigned themselves).
+        if ($developer && $developer->id !== auth()->id()) {
+            $developer->notify(new LeadAssignedNotification($lead));
         }
 
         return back()->with('status', 'Developer assigned successfully.');
@@ -116,6 +123,33 @@ class LeadWorkflowController extends Controller
         }
 
         return back()->with('status', 'Sales details updated successfully.');
+    }
+
+    /**
+     * Schedule (or reschedule) the next follow-up for a lead.
+     *
+     * The reminder is targeted at the scheduling user, and rescheduling
+     * re-arms the reminder by clearing the "notified" stamp.
+     */
+    public function scheduleFollowUp(ScheduleFollowUpRequest $request, Lead $lead): RedirectResponse
+    {
+        $data = $request->validated();
+
+        $lead->next_follow_up_at = $data['next_follow_up_at'];
+        $lead->follow_up_notes = $data['follow_up_notes'] ?? null;
+        $lead->follow_up_user_id = auth()->id();
+        // Re-arm: a freshly (re)scheduled follow-up has not been notified yet.
+        $lead->follow_up_notified_at = null;
+        $lead->save();
+
+        $lead->recordEvent(
+            LeadEvent::TYPE_FOLLOW_UP_SCHEDULED,
+            'Follow-up scheduled for '.$lead->next_follow_up_at->format('M j, Y g:i A').'.',
+            null,
+            $lead->next_follow_up_at->toDateTimeString(),
+        );
+
+        return back()->with('status', 'Follow-up scheduled successfully.');
     }
 
     /**

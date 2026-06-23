@@ -6,6 +6,8 @@ use App\Http\Requests\StoreDeveloperTaskRequest;
 use App\Http\Requests\UpdateDeveloperTaskRequest;
 use App\Models\DeveloperTask;
 use App\Models\Lead;
+use App\Models\User;
+use App\Notifications\LeadAssignedNotification;
 use Illuminate\Http\RedirectResponse;
 
 class DeveloperTaskController extends Controller
@@ -15,10 +17,19 @@ class DeveloperTaskController extends Controller
      */
     public function store(StoreDeveloperTaskRequest $request, Lead $lead): RedirectResponse
     {
+        $developerId = (int) $request->validated()['developer_id'];
+        $previousDeveloperId = $lead->developerTask?->developer_id;
+
         $lead->developerTask()->updateOrCreate(
             ['lead_id' => $lead->id],
-            ['developer_id' => $request->validated()['developer_id']],
+            ['developer_id' => $developerId],
         );
+
+        // Notify only when the developer actually changed and they didn't
+        // assign the lead to themselves.
+        if ($developerId !== $previousDeveloperId && $developerId !== auth()->id()) {
+            User::find($developerId)?->notify(new LeadAssignedNotification($lead));
+        }
 
         return redirect()
             ->route('leads.show', $lead)

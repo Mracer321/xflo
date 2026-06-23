@@ -7,6 +7,7 @@ use App\Http\Controllers\DeveloperTaskController;
 use App\Http\Controllers\LeadAssetController;
 use App\Http\Controllers\LeadController;
 use App\Http\Controllers\LeadWorkflowController;
+use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
 
@@ -29,6 +30,15 @@ Route::middleware('auth')->group(function () {
     Route::post('/logout', [LoginController::class, 'destroy'])->name('logout');
 
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+
+    /*
+    |----------------------------------------------------------------------
+    | Phase 7 in-app notification centre (all authenticated roles).
+    |----------------------------------------------------------------------
+    */
+    Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');
+    Route::patch('/notifications/read-all', [NotificationController::class, 'readAll'])->name('notifications.read-all');
+    Route::patch('/notifications/{id}/read', [NotificationController::class, 'read'])->name('notifications.read');
 
     /*
     |----------------------------------------------------------------------
@@ -114,6 +124,10 @@ Route::middleware('auth')->group(function () {
     Route::middleware('role:super_admin,leads_admin,sales')->group(function () {
         Route::put('/leads/{lead}/sales', [LeadWorkflowController::class, 'salesUpdate'])
             ->name('leads.sales.update');
+
+        // Schedule the next follow-up (Phase 7).
+        Route::put('/leads/{lead}/follow-up', [LeadWorkflowController::class, 'scheduleFollowUp'])
+            ->name('leads.follow-up.update');
     });
 
     /*

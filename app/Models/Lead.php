@@ -164,6 +164,11 @@ class Lead extends Model
         'offline_reason',
         'offline_at',
         'deleted_at_demo',
+        // Phase 7 follow-up scheduling
+        'next_follow_up_at',
+        'follow_up_notes',
+        'follow_up_notified_at',
+        'follow_up_user_id',
     ];
 
     /**
@@ -179,6 +184,8 @@ class Lead extends Model
             'demo_sent_at' => 'datetime',
             'offline_at' => 'datetime',
             'deleted_at_demo' => 'datetime',
+            'next_follow_up_at' => 'datetime',
+            'follow_up_notified_at' => 'datetime',
         ];
     }
 
@@ -228,6 +235,18 @@ class Lead extends Model
     }
 
     /**
+     * Scope to leads whose scheduled follow-up is now due and not yet notified.
+     *
+     * Used by the Phase 7 reminder command to find follow-ups to surface.
+     */
+    public function scopeFollowUpDue(Builder $query): Builder
+    {
+        return $query->whereNotNull('next_follow_up_at')
+            ->where('next_follow_up_at', '<=', now())
+            ->whereNull('follow_up_notified_at');
+    }
+
+    /**
      * Workflow-status options (key => label) the given user may filter by.
      *
      * Developers and salespeople see only the stages relevant to their part of
@@ -270,6 +289,14 @@ class Lead extends Model
     public function developer(): BelongsTo
     {
         return $this->belongsTo(User::class, 'developer_id');
+    }
+
+    /**
+     * The user who scheduled the current follow-up — the reminder recipient (Phase 7).
+     */
+    public function followUpUser(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'follow_up_user_id');
     }
 
     /**

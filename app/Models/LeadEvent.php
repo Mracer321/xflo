@@ -28,6 +28,8 @@ class LeadEvent extends Model
 
     public const TYPE_FOLLOW_UP = 'follow_up';
 
+    public const TYPE_FOLLOW_UP_SCHEDULED = 'follow_up_scheduled';
+
     public const TYPE_CONVERTED = 'converted';
 
     public const TYPE_REJECTED = 'rejected';
@@ -58,6 +60,7 @@ class LeadEvent extends Model
         self::TYPE_DEMO_URL_ADDED => 'Demo URL Added',
         self::TYPE_DEMO_SENT => 'Demo Sent',
         self::TYPE_FOLLOW_UP => 'Follow Up',
+        self::TYPE_FOLLOW_UP_SCHEDULED => 'Follow-up Scheduled',
         self::TYPE_CONVERTED => 'Converted',
         self::TYPE_REJECTED => 'Rejected',
         self::TYPE_NOTE => 'Note',

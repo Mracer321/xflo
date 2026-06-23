@@ -216,6 +216,37 @@
                         <button type="submit" class="rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700">Save Sales Update</button>
                     </div>
                 </form>
+
+                {{-- Follow-up scheduling (Phase 7) --}}
+                <form method="POST" action="{{ route('leads.follow-up.update', $lead) }}" class="mt-5 space-y-4 border-t border-gray-100 pt-5">
+                    @csrf
+                    @method('PUT')
+                    <div class="flex items-center justify-between">
+                        <p class="text-xs font-semibold uppercase tracking-wide text-gray-500">Schedule Follow-up</p>
+                        @if ($lead->next_follow_up_at)
+                            <span class="text-xs text-gray-500">
+                                Next: <span class="font-medium text-gray-700">{{ $lead->next_follow_up_at->format('M j, Y g:i A') }}</span>
+                            </span>
+                        @endif
+                    </div>
+                    <div>
+                        <label for="next_follow_up_at" class="block text-sm font-medium text-gray-700 mb-1">Follow-up date &amp; time</label>
+                        <input id="next_follow_up_at" name="next_follow_up_at" type="datetime-local"
+                            value="{{ old('next_follow_up_at', $lead->next_follow_up_at?->format('Y-m-d\TH:i')) }}"
+                            class="block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-none sm:max-w-xs">
+                        @error('next_follow_up_at')
+                            <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
+                        @enderror
+                    </div>
+                    <div>
+                        <label for="follow_up_notes" class="block text-sm font-medium text-gray-700 mb-1">Follow-up Notes</label>
+                        <textarea id="follow_up_notes" name="follow_up_notes" rows="2"
+                            class="block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-none">{{ old('follow_up_notes', $lead->follow_up_notes) }}</textarea>
+                    </div>
+                    <div class="flex justify-end">
+                        <button type="submit" class="rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700">Schedule Follow-up</button>
+                    </div>
+                </form>
             @endif
         </div>
 
