@@ -11,3 +11,7 @@ Artisan::command('inspire', function () {
 // Phase 7: surface due follow-up reminders into the in-app notification centre.
 // Requires the system scheduler to be running (`php artisan schedule:run` via cron).
 Schedule::command('leads:send-follow-up-reminders')->hourly();
+
+// Phase 8: nightly database backup (keeps the 7 most recent dumps). Requires the
+// mysqldump client tool on the PATH. See docs/BACKUP.md.
+Schedule::command('db:backup')->dailyAt('02:30');

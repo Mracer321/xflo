@@ -33,12 +33,17 @@ class StoreLeadAssetRequest extends FormRequest
         return [
             'file_type' => ['required', Rule::in(array_keys(LeadAsset::TYPES))],
             'files'     => ['required', 'array', 'max:20'],
-            // Images and common document formats, up to 10 MB each.
+            // Images and common document formats, up to 10 MB each. SVG is
+            // intentionally excluded — it can carry embedded scripts (stored XSS).
+            // `mimes` validates the detected MIME type; `extensions` additionally
+            // pins the client filename extension so a renamed executable is
+            // rejected even if its content sniffs as an allowed type.
             'files.*'   => [
                 'required',
                 'file',
                 'max:10240',
-                'mimes:jpg,jpeg,png,gif,webp,svg,pdf,doc,docx,xls,xlsx,ppt,pptx,txt,csv',
+                'mimes:jpg,jpeg,png,gif,webp,pdf,doc,docx,xls,xlsx,ppt,pptx,txt,csv',
+                'extensions:jpg,jpeg,png,gif,webp,pdf,doc,docx,xls,xlsx,ppt,pptx,txt,csv',
             ],
         ];
     }
@@ -51,9 +56,10 @@ class StoreLeadAssetRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'files.required'   => 'Please select at least one file to upload.',
-            'files.*.max'      => 'Each file may not be larger than 10 MB.',
-            'files.*.mimes'    => 'Only images and common document formats are allowed.',
+            'files.required'     => 'Please select at least one file to upload.',
+            'files.*.max'        => 'Each file may not be larger than 10 MB.',
+            'files.*.mimes'      => 'Only images and common document formats are allowed.',
+            'files.*.extensions' => 'Only images and common document formats are allowed.',
         ];
     }
 }

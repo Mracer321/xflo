@@ -8,8 +8,16 @@ use App\Http\Controllers\LeadAssetController;
 use App\Http\Controllers\LeadController;
 use App\Http\Controllers\LeadWorkflowController;
 use App\Http\Controllers\NotificationController;
+use App\Http\Controllers\SystemStatusController;
 use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
+
+/*
+|--------------------------------------------------------------------------
+| Health probe (unauthenticated) — for uptime monitors / load balancers.
+|--------------------------------------------------------------------------
+*/
+Route::get('/health', [SystemStatusController::class, 'health'])->name('health');
 
 /*
 |--------------------------------------------------------------------------
@@ -152,6 +160,9 @@ Route::middleware('auth')->group(function () {
     Route::middleware('role:super_admin')->group(function () {
         Route::patch('/users/{user}/toggle', [UserController::class, 'toggle'])->name('users.toggle');
         Route::resource('users', UserController::class)->except(['show']);
+
+        // Phase 8 — admin system status / monitoring page.
+        Route::get('/system/status', [SystemStatusController::class, 'index'])->name('system.status');
     });
 });
 

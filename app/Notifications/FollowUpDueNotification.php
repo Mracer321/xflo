@@ -4,11 +4,18 @@ namespace App\Notifications;
 
 use App\Models\Lead;
 use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Notification;
 
-class FollowUpDueNotification extends Notification
+class FollowUpDueNotification extends Notification implements ShouldQueue
 {
     use Queueable;
+
+    /** Attempt the delivery job up to three times before failing. */
+    public int $tries = 3;
+
+    /** Seconds to wait between retries. */
+    public int $backoff = 30;
 
     public function __construct(public Lead $lead) {}
 

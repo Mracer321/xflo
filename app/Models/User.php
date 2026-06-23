@@ -3,6 +3,7 @@
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
+use App\Services\StatsCache;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -13,6 +14,16 @@ class User extends Authenticatable
 {
     /** @use HasFactory<UserFactory> */
     use HasFactory, Notifiable;
+
+    /**
+     * A user change (new/renamed/removed developer, role change) affects both the
+     * cached developer dropdown and team analytics, so invalidate the namespace.
+     */
+    protected static function booted(): void
+    {
+        static::saved(fn () => StatsCache::bump());
+        static::deleted(fn () => StatsCache::bump());
+    }
 
     /**
      * Available roles (stored directly in the users.role column).

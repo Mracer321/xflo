@@ -16,6 +16,9 @@ class LeadAssetController extends Controller
      */
     public function store(StoreLeadAssetRequest $request, Lead $lead): RedirectResponse
     {
+        // A developer may only upload to leads assigned to them.
+        abort_unless($lead->isVisibleTo($request->user()), 403, 'You are not assigned to this lead.');
+
         $type = $request->validated()['file_type'];
 
         foreach ($request->file('files') as $file) {
@@ -38,6 +41,10 @@ class LeadAssetController extends Controller
      */
     public function download(LeadAsset $asset): StreamedResponse
     {
+        // Prevent insecure direct object access: the user must be able to see the
+        // parent lead (developers are scoped to their assigned leads).
+        abort_unless($asset->lead->isVisibleTo(auth()->user()), 403);
+
         abort_unless(Storage::disk('public')->exists($asset->file_path), 404);
 
         return Storage::disk('public')->download($asset->file_path, $asset->file_name);
@@ -48,6 +55,9 @@ class LeadAssetController extends Controller
      */
     public function destroy(LeadAsset $asset): RedirectResponse
     {
+        // Same visibility gate as download — no deleting assets on other leads.
+        abort_unless($asset->lead->isVisibleTo(auth()->user()), 403);
+
         $leadId = $asset->lead_id;
 
         Storage::disk('public')->delete($asset->file_path);

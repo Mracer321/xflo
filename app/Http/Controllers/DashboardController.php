@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Lead;
 use App\Models\User;
+use App\Services\StatsCache;
 use Illuminate\View\View;
 
 class DashboardController extends Controller
@@ -15,8 +16,16 @@ class DashboardController extends Controller
     {
         $user = auth()->user();
 
+        // Widget counts are pure aggregates over leads; cache them per
+        // role (developers additionally per-user, since they're scoped).
+        $cacheKey = $user->isDeveloper()
+            ? "dashboard:user:{$user->id}"
+            : "dashboard:role:{$user->role}";
+
+        $widgets = StatsCache::remember($cacheKey, fn () => $this->widgetsFor($user));
+
         return view('dashboard', [
-            'widgets' => $this->widgetsFor($user),
+            'widgets' => $widgets,
         ]);
     }
 

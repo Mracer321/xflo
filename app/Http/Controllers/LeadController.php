@@ -9,6 +9,7 @@ use App\Models\Lead;
 use App\Models\LeadAsset;
 use App\Models\LeadEvent;
 use App\Models\User;
+use App\Services\StatsCache;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -103,7 +104,7 @@ class LeadController extends Controller
             'demoStatuses' => $demoOptions,
             'visibleFilters' => $allowed,
             'developers' => in_array('developer_id', $allowed, true)
-                ? User::where('role', User::ROLE_DEVELOPER)->orderBy('name')->get()
+                ? $this->developerOptions()
                 : new Collection,
             'creators' => in_array('created_by', $allowed, true)
                 ? $this->leadCreators()
@@ -144,6 +145,19 @@ class LeadController extends Controller
     }
 
     /**
+     * The active developer dropdown options, cached (frequently rendered on the
+     * list and detail pages). Invalidated whenever any user record changes.
+     */
+    private function developerOptions(): Collection
+    {
+        return StatsCache::remember(
+            'dropdown:developers',
+            fn () => User::where('role', User::ROLE_DEVELOPER)->orderBy('name')->get(),
+            StatsCache::DROPDOWN_TTL,
+        );
+    }
+
+    /**
      * Users who have created at least one lead, for the "Created By" filter.
      */
     private function leadCreators(): Collection
@@ -171,18 +185,13 @@ class LeadController extends Controller
         $user = auth()->user();
 
         // Developers may only view leads assigned to them (Phase 3 task or Phase 5 workflow).
-        if ($user->isDeveloper()) {
-            $assigned = $lead->developer_id === $user->id
-                || ($lead->developerTask && $lead->developerTask->developer_id === $user->id);
-
-            abort_unless($assigned, 403, 'You are not assigned to this lead.');
-        }
+        abort_unless($lead->isVisibleTo($user), 403, 'You are not assigned to this lead.');
 
         return view('leads.show', [
             'lead' => $lead,
             'assetsByType' => $lead->assets->groupBy('file_type'),
             'assetTypes' => LeadAsset::TYPES,
-            'developers' => User::where('role', User::ROLE_DEVELOPER)->orderBy('name')->get(),
+            'developers' => $this->developerOptions(),
             'developerStatuses' => DeveloperTask::STATUSES,
             'platforms' => DeveloperTask::PLATFORMS,
             'reasonStatuses' => DeveloperTask::REASON_REQUIRED_STATUSES,

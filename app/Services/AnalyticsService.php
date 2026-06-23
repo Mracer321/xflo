@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Lead;
 use App\Models\LeadEvent;
 use App\Models\User;
+use App\Services\StatsCache;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 
@@ -100,6 +101,11 @@ class AnalyticsService
      */
     public function developerMetrics(int $userId): array
     {
+        return StatsCache::remember("analytics:devmetrics:{$userId}", fn () => $this->computeDeveloperMetrics($userId));
+    }
+
+    private function computeDeveloperMetrics(int $userId): array
+    {
         [$todayFrom, $todayTo] = $this->resolveRange('today');
         [$weekFrom, $weekTo] = $this->resolveRange('week');
         [$monthFrom, $monthTo] = $this->resolveRange('month');
@@ -133,6 +139,11 @@ class AnalyticsService
      */
     public function salesMetrics(int $userId): array
     {
+        return StatsCache::remember("analytics:salesmetrics:{$userId}", fn () => $this->computeSalesMetrics($userId));
+    }
+
+    private function computeSalesMetrics(int $userId): array
+    {
         [$todayFrom, $todayTo] = $this->resolveRange('today');
         [$weekFrom, $weekTo] = $this->resolveRange('week');
         [$monthFrom, $monthTo] = $this->resolveRange('month');
@@ -165,6 +176,11 @@ class AnalyticsService
      * @return array<string, array<string, int|string>>
      */
     public function adminMetrics(): array
+    {
+        return StatsCache::remember('analytics:adminmetrics', fn () => $this->computeAdminMetrics());
+    }
+
+    private function computeAdminMetrics(): array
     {
         [$todayFrom, $todayTo] = $this->resolveRange('today');
         [$weekFrom, $weekTo] = $this->resolveRange('week');
@@ -246,6 +262,13 @@ class AnalyticsService
      */
     public function developerTeam(Carbon $from, Carbon $to): Collection
     {
+        $key = "analytics:devteam:{$from->timestamp}:{$to->timestamp}";
+
+        return StatsCache::remember($key, fn () => $this->computeDeveloperTeam($from, $to));
+    }
+
+    private function computeDeveloperTeam(Carbon $from, Carbon $to): Collection
+    {
         $developers = User::where('role', User::ROLE_DEVELOPER)->orderBy('name')->get();
 
         $assigned = Lead::whereNotNull('developer_id')
@@ -273,6 +296,13 @@ class AnalyticsService
      * Sales team rows: name, follow ups, demo sent, conversions.
      */
     public function salesTeam(Carbon $from, Carbon $to): Collection
+    {
+        $key = "analytics:salesteam:{$from->timestamp}:{$to->timestamp}";
+
+        return StatsCache::remember($key, fn () => $this->computeSalesTeam($from, $to));
+    }
+
+    private function computeSalesTeam(Carbon $from, Carbon $to): Collection
     {
         $sales = User::where('role', User::ROLE_SALES)->orderBy('name')->get();
         $counts = $this->perUserTypeCounts(self::SALES_EVENTS, $from, $to);
@@ -312,6 +342,15 @@ class AnalyticsService
      */
     public function trend(?int $userId, array $types, int $days = 14, bool $distinctLeads = false): array
     {
+        // Keyed by the current day so the rolling window rolls over cleanly.
+        $key = 'analytics:trend:'.($userId ?? 'all').':'.implode(',', $types)
+            .":{$days}:".($distinctLeads ? '1' : '0').':'.Carbon::today()->toDateString();
+
+        return StatsCache::remember($key, fn () => $this->computeTrend($userId, $types, $days, $distinctLeads));
+    }
+
+    private function computeTrend(?int $userId, array $types, int $days, bool $distinctLeads): array
+    {
         $start = Carbon::today()->subDays($days - 1);
 
         $expr = $distinctLeads ? 'COUNT(DISTINCT lead_id)' : 'COUNT(*)';
@@ -344,6 +383,11 @@ class AnalyticsService
      * @return array<int, array{label: string, value: int|string, tone: string}>
      */
     public function widgetsFor(User $user): array
+    {
+        return StatsCache::remember("analytics:widgets:{$user->role}:{$user->id}", fn () => $this->computeWidgetsFor($user));
+    }
+
+    private function computeWidgetsFor(User $user): array
     {
         if ($user->isDeveloper()) {
             [$monthFrom, $monthTo] = $this->resolveRange('month');

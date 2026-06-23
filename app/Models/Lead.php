@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Services\StatsCache;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -10,6 +11,15 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Lead extends Model
 {
+    /**
+     * Invalidate the cached dashboard / analytics aggregates whenever a lead is
+     * written or removed (its workflow_status / developer_id feed those figures).
+     */
+    protected static function booted(): void
+    {
+        static::saved(fn () => StatsCache::bump());
+        static::deleted(fn () => StatsCache::bump());
+    }
     /**
      * Lead pipeline statuses (stored directly in the leads.status column).
      */
@@ -232,6 +242,24 @@ class Lead extends Model
         }
 
         return $query;
+    }
+
+    /**
+     * Whether the given user is allowed to see this lead.
+     *
+     * Single source of truth for per-lead authorization, mirroring
+     * {@see Lead::scopeVisibleTo}: developers may only see leads assigned to them
+     * (via the Phase 5 workflow or the Phase 3 developer task); every other role
+     * sees all leads. Used by the lead detail page and the asset routes.
+     */
+    public function isVisibleTo(User $user): bool
+    {
+        if (! $user->isDeveloper()) {
+            return true;
+        }
+
+        return $this->developer_id === $user->id
+            || ($this->developerTask && $this->developerTask->developer_id === $user->id);
     }
 
     /**

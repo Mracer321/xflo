@@ -80,6 +80,8 @@ class LeadAsset extends Model
     {
         $extension = strtolower(pathinfo($this->file_path, PATHINFO_EXTENSION));
 
-        return in_array($extension, ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'], true);
+        // SVG deliberately omitted — not an accepted upload type and unsafe to
+        // render inline (embedded scripts).
+        return in_array($extension, ['jpg', 'jpeg', 'png', 'gif', 'webp'], true);
     }
 }

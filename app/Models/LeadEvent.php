@@ -2,11 +2,22 @@
 
 namespace App\Models;
 
+use App\Services\StatsCache;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class LeadEvent extends Model
 {
+    /**
+     * Every analytics figure is derived from the timeline, so a new or removed
+     * event must invalidate the cached aggregates.
+     */
+    protected static function booted(): void
+    {
+        static::saved(fn () => StatsCache::bump());
+        static::deleted(fn () => StatsCache::bump());
+    }
+
     /**
      * Timeline event types.
      */
